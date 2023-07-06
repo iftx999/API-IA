@@ -1,0 +1,69 @@
+import openai
+import os
+import json
+
+
+# Configurar a sua chave de API da OpenAI
+openai.api_key = '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'
+
+def calcular_custo(resposta):
+    tokens_utilizados = resposta['usage']['total_tokens']
+    custo_por_token = 0.0001
+    custo_total = tokens_utilizados * custo_por_token
+    return custo_total
+
+# Função para enviar a pergunta para o chatbot e obter uma resposta
+def perguntar(pergunta, hist):
+    apresentação = "você é o 'Fernando' um chatbot e esta aqui para conduzir uma entrevista de contratação para a posição de desenvolvedor junior não pode responder nada como se fosse o entrevistado apenas perguntar, o historico da conversa sera repassado a cada pergunta para que possa evoluir a conversa mas não confunda como se fosse algo para você completar, no começo se apresente e comece a entrevista com educação não faça perguntas repetidas e encerre a entrevista quando achar que o funcionario já pode ser contratado ou não. não se esqueça de perguntar o nome do entrevistado e não se exceda no numero de perguntas. quando achar melhor finalizar a entrevista diga 'muito obrigado pela participação' e o chatbot ira encerrar a entrevista e a proxima pergunta sera sobre a nota e o que achou da entrevista., a entrevista não deve durar mais que 10 minutos. equivalente a 10 perguntas. "
+
+    entrada_modelo = f"Seu contexto: {apresentação} \nHistorico_da_conversa: {hist} \nUsuario: {pergunta}\nR:"
+    resposta = openai.Completion.create(
+        engine='text-davinci-003', # Essa é a versão mais avançada do GPT-3
+        prompt=entrada_modelo, # A entrada do modelo é o contexto e a pergunta
+        max_tokens=200, # Número máximo de tokens para a resposta
+        temperature=0.9, # Quanto maior, mais criativa a resposta
+        top_p=0.5, # Quanto maior, mais "conservadora" a resposta
+        frequency_penalty=0.0, # Quanto maior, menos repetições
+        presence_penalty=0.0 # Quanto maior, menos "sem sentido" a resposta
+    )
+    return resposta
+
+# Nome do arquivo para salvar e carregar o histórico de conversas
+arquivo_historico = "historico_conversas.json"
+
+# Verificar se o arquivo de histórico existe e carregar o conteúdo
+if os.path.exists(arquivo_historico):
+    with open(arquivo_historico, "r", encoding="UTF-8") as arquivo:
+        hist = json.load(arquivo)
+else:
+    hist = []
+
+
+custo_total = 0
+while True:
+    #mudar titulo
+    os.system("title Entrevista - Custo: US$ {:.2f}".format(custo_total))
+    # Obter a entrada do usuário
+    pergunta = input("> ")
+
+    # Adicionar a pergunta ao histórico
+    hist.append(pergunta)
+
+    # Obter a resposta do chatbot
+    response = perguntar(pergunta, hist)
+    resposta = response['choices'][0]['text'].strip()
+    
+
+    custo_resposta = calcular_custo(response)
+
+    custo_total += custo_resposta
+
+    # Adicionar a resposta ao histórico
+    hist.append(resposta)
+
+    # Imprimir a resposta
+    print(resposta)
+
+    # Salvar o histórico de conversas no arquivo
+    with open(arquivo_historico, "w") as arquivo:
+        json.dump(hist, arquivo)
